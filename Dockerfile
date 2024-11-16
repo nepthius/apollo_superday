@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM --platform=linux/amd64 python:3.12-slim
 
 #add user to prevent sudo commands running
 RUN useradd -r -s /bin/bash anish
