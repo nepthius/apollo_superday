@@ -23,6 +23,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 class Vehicle(db.Model):
+
     __tablename__='vehicles'
 
     vin = db.Column(db.String(), primary_key=True)
@@ -34,6 +35,7 @@ class Vehicle(db.Model):
     fuel_type = db.Column(db.String())
 
     def __init__(self, vin, manufacturer_name, horse_power, model_name, model_year, purchase_price, fuel_type):
+
         self.vin = vin.upper()
         self.manufacturer_name = manufacturer_name
         self.horse_power = horse_power
@@ -43,6 +45,7 @@ class Vehicle(db.Model):
         self.fuel_type = fuel_type
     
     def serialize(self):
+
         return {
             "vin": self.vin,
             "manufacturer_name": self.manufacturer_name,
@@ -63,15 +66,20 @@ def hello() -> str:
 
 @app.route('/vehicle', methods=['GET', 'POST'])
 def list_vehicles():
+
     if request.method=='GET':
+
         vehicles = Vehicle.query.all()
+
         if vehicles:
             vehicles = [vehicle.serialize() for vehicle in vehicles]
             return jsonify(vehicles), 200
+        
         else:
             return 'No Vehicles.'
         
     elif request.method=='POST':
+
         vehicle_request = request.get_json()
         
         vin, error = validate_vehicle_request(vehicle_request, Vehicle, False)
@@ -92,20 +100,26 @@ def list_vehicles():
         db.session.commit()
         return jsonify(vehicle.serialize()), 201
 
-@app.route('/vehicle/<vin>', methods=['GET', 'PUT'])
+@app.route('/vehicle/<vin>', methods=['GET', 'PUT', 'DELETE'])
 def select_vehicle(vin):
+
     if request.method=='GET':
+
         vehicle = Vehicle.query.get(vin)
+
         if vehicle is None:
             return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
         
         return jsonify(vehicle.serialize()),200
 
     elif request.method=='PUT':
+
         vehicle_request = request.get_json()
+
         vin, error = validate_vehicle_request(vehicle_request, Vehicle, True)
         if error:
             return error, 422
+        
         vehicle = Vehicle.query.get(vin)
 
         #can also handle by adding in a new entry
@@ -119,7 +133,19 @@ def select_vehicle(vin):
         vehicle.model_year = vehicle_request.get('model_year')
         vehicle.purchase_price = vehicle_request.get('purchase_price')
         vehicle.fuel_type = vehicle_request.get('fuel_type')
-        
+
         db.session.commit()
 
         return jsonify(vehicle.serialize()),200
+
+    elif request.method=='DELETE':
+        vehicle = Vehicle.query.get(vin)
+
+        if vehicle is None:
+            return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
+        
+
+        db.session.delete(vehicle)
+        db.session.commit()
+
+    return jsonify({"message":f"deleted vehicle with vin: {vin}"}), 204
