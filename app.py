@@ -41,6 +41,17 @@ class Vehicle(db.Model):
         self.purchase_price = purchase_price
         self.fuel_type = fuel_type
     
+    def serialize(self):
+        return {
+            "vin": self.vin,
+            "manafacturer_name": self.manafacturer_name,
+            "horse_power": self.horse_power,
+            "model_name": self.model_name,
+            "model_year": self.model_year,
+            "purchase_price": self.purchase_price,
+            "fuel_type": self.fuel_type,
+        }
+    
     def __repr__(self):
         return f'vin: {self.vin}'
 
@@ -49,10 +60,14 @@ class Vehicle(db.Model):
 def hello() -> str:
     return 'Start of vehicle creation - round 3!'
 
-@app.route('/vehicle')
+@app.route('/vehicle', methods=['GET', 'POST'])
 def list_vehicles():
-    vehicles = Vehicle.query.all()
-    if vehicles:
-        return 'There are vehicles'
-    else:
-        return 'No Vehicles.'
+    if request.method=='GET':
+        vehicles = Vehicle.query.all()
+        if vehicles:
+            vehicles = [vehicle.serialize() for vehicle in vehicles]
+            return jsonify(vehicles), 200
+        else:
+            return 'No Vehicles.'
+    elif request.method=='POST':
+        print("done")
