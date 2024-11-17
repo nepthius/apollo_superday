@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from helper import validate_vehicle_request
 
 app = Flask(__name__)
 
@@ -73,42 +74,10 @@ def list_vehicles():
     elif request.method=='POST':
         vehicle_request = request.get_json()
         
-        required_inputs = ["manufacturer_name", "horse_power", "model_name", "model_year", "purchase_price", "fuel_type"]
-
-        for input in required_inputs:
-            if input not in vehicle_request:
-                return jsonify({"error":f"{input} not in request"}), 400
+        vin, error = validate_vehicle_request(vehicle_request, Vehicle, False)
+        if error:
+            return error, 422
         
-        if not isinstance(vehicle_request["manufacturer_name"], str):
-            return jsonify({"error": "'manufacturer_name' must be a string"}), 400
-
-        if not isinstance(vehicle_request["horse_power"], int):
-            return jsonify({"error": "'horse_power' must be a int"}), 400
-
-        if not isinstance(vehicle_request["model_name"], str):
-            return jsonify({"error": "'model_name' must be a string"}), 400
-        
-        if not isinstance(vehicle_request["model_year"], int):
-            return jsonify({"error": "'model_year' must be a int"}), 400
-
-        #reminder to add a rounding here to two decimal points
-        if not isinstance(vehicle_request["purchase_price"], (float,int)):
-            return jsonify({"error": "'model_year' must be a int"}), 400
-
-        if not isinstance(vehicle_request["fuel_type"], str):
-            return jsonify({"error": "'fuel_type' must be a string"}), 400
-
-        vin = None
-        if "vin" in vehicle_request:
-            vin = vehicle_request.get('vin')
-            if not isinstance(vin, str):
-                return jsonify({"error": "'vin' must be a string"}), 400
-            vin = vin.upper()
-            if Vehicle.query.filter_by(vin=vin).first():
-                return jsonify({"error": "'vin' must be unique"}), 400
-        else:
-            pass
-
         vehicle = Vehicle(
             vin = vin,
             manufacturer_name = vehicle_request.get('manufacturer_name'),
@@ -122,3 +91,35 @@ def list_vehicles():
         db.session.add(vehicle)
         db.session.commit()
         return jsonify(vehicle.serialize()), 201
+
+@app.route('/vehicle/<vin>', methods=['GET', 'PUT'])
+def select_vehicle(vin):
+    if request.method=='GET':
+        vehicle = Vehicle.query.get(vin)
+        if vehicle is None:
+            return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
+        
+        return jsonify(vehicle.serialize()),200
+
+    elif request.method=='PUT':
+        vehicle_request = request.get_json()
+        vin, error = validate_vehicle_request(vehicle_request, Vehicle, True)
+        if error:
+            return error, 422
+        vehicle = Vehicle.query.get(vin)
+
+        #can also handle by adding in a new entry
+        if not vehicle:
+            return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
+
+        vehicle.vin = vin
+        vehicle.manufacturer_name = vehicle_request.get('manufacturer_name')
+        vehicle.horse_power = vehicle_request.get('horse_power')
+        vehicle.model_name = vehicle_request.get('model_name')
+        vehicle.model_year = vehicle_request.get('model_year')
+        vehicle.purchase_price = vehicle_request.get('purchase_price')
+        vehicle.fuel_type = vehicle_request.get('fuel_type')
+        
+        db.session.commit()
+
+        return jsonify(vehicle.serialize()),200
