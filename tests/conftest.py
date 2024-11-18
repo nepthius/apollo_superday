@@ -5,8 +5,8 @@ from app import create_app
 
 @pytest.fixture()
 def app():
-
-    #creates app with testing config
+    '''create app with testing configurations'''
+    
     app, db, migrate = create_app({
         "TESTING": True, 
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:", 
@@ -24,6 +24,6 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """A test client for the app."""
+    """test client for the app"""
     return app.test_client()
 
