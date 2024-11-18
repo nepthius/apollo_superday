@@ -5,3 +5,5 @@ flask-migrate
 psycopg2
 boto3
 python-dotenv
+pytest
+pytest-flask
