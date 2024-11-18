@@ -1,10 +1,12 @@
 
 def test_view_empty_vehicle(client):
+    '''tests the vehicle route to display all vehicles when db is empty'''
     response = client.get("/vehicle")
     assert response.status_code == 200
     assert response.json == []
 
 def test_post_new_vehicle_and_view(client):
+    '''tests the vehicle route to post a vehicle and view that singular vehicle'''
     payload = {
                 "vin": "3VWFA81H9PM123456",
                 "manufacturer_name": "Volkswagen",
@@ -43,6 +45,7 @@ def test_post_new_vehicle_and_view(client):
                 }
 
 def test_post_duplicate_vin_vehicle(client):
+    '''tests the vehicle route to handle duplicate vin post'''
     payload = {
                 "vin": "3VWFA81H9PM123456",
                 "manufacturer_name": "Volkswagen",
@@ -59,6 +62,7 @@ def test_post_duplicate_vin_vehicle(client):
     assert response.json["error"] == "'vin' must be unique"
 
 def test_post_missing_vehicle_vals(client):
+    '''tests the vehicle route to handle missing attribute(s) post'''
     payload = {
                 "vin": "3VWFA81H9PM123456",
                 "manufacturer_name": "Volkswagen",
@@ -82,6 +86,7 @@ def test_post_missing_vehicle_vals(client):
         temp_payload[input] = payload[input]
 
 def test_post_malformed_values(client):
+    '''tests the vehicle route to handle malformed attribute post'''
     payload = {
                 "vin": "3VWFA81H9PM123456",
                 "manufacturer_name": "Volkswagen",
@@ -115,6 +120,7 @@ def test_post_malformed_values(client):
 
 
 def test_vehicle_update(client):
+    '''tests the vehicle route to handle puts'''
     payload = {
                 "vin": "3VWFA81H9PM123456",
                 "manufacturer_name": "Volkswagen",
@@ -139,7 +145,12 @@ def test_vehicle_update(client):
     assert response.status_code == 200
     assert response.json["model_year"] == 1990
 
+    #checking response for an invalid vin
+    response = client.get("/vehicle/3VWFA81H9PM123457", json=payload)
+    assert response.status_code == 404
+
 def test_vehicle_deletion(client):
+    '''tests the vehicle route to handle puts'''
     payload = {
                 "vin": "3VWFA81H9PM123456",
                 "manufacturer_name": "Volkswagen",

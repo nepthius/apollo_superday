@@ -126,9 +126,10 @@ def create_app(config_updates=None):
             
             vehicle = Vehicle.query.get(vin)
 
-            #can also handle by adding in a new entry
+            
             if not vehicle:
                 return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
+                #or simply return 200 and add new entry based on how this put should be handled (clarify~)
 
             vehicle.vin = vin
             vehicle.manufacturer_name = vehicle_request.get('manufacturer_name')
@@ -147,6 +148,7 @@ def create_app(config_updates=None):
 
             if vehicle is None:
                 return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
+                #or simply return 204 based on how this delete should be handled (clarify~)
             
             db.session.delete(vehicle)
             db.session.commit()
