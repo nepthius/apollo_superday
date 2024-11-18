@@ -207,3 +207,39 @@ def test_vehicle_deletion(client):
     response = client.get("/vehicle")
     assert response.status_code == 200
     assert response.json == []
+
+def test_vehicle_patch(client):
+    payload = {
+                "vin": "3VWFA81H9PM123456",
+                "manufacturer_name": "Volkswagen",
+                "model_name": "Jetta",
+                "model_year": 1993,
+                "fuel_type": "Gasoline",
+                "horse_power": 115,
+                "purchase_price": 2200.20
+                }
+    
+    #check if vehicle was succesfuly posted
+    response = client.post("/vehicle", json=payload)
+    assert response.status_code ==201
+    assert response.json["vin"] == "3VWFA81H9PM123456"
+
+    patch_payload = {
+        "model_year":2018
+    }
+
+    #check if patch request was succesful
+    response = client.patch("/vehicle/3VWFA81H9PM123456", json=patch_payload)
+    assert response.status_code ==200
+    assert response.json["model_year"] == 2018
+
+    #check if patch request is reflect in db
+    response = client.get("/vehicle/3VWFA81H9PM123456")
+    assert response.status_code ==200
+    assert response.json["model_year"] == 2018
+
+    #check if patch request handles malformed attributes
+    patch_payload["model_year"] = "bad_val"
+    response = client.patch("/vehicle/3VWFA81H9PM123456", json=patch_payload)
+    assert response.status_code == 422
+    assert response.json["error"] == f"'model_year' must be a int"
