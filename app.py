@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from helper import validate_vehicle_request
 
 def create_app(config_updates=None):
+    '''creates a basic flask app (either connecting to RDS or memory based on configurations passed in'''
 
     app = Flask(__name__)
 
@@ -28,9 +29,20 @@ def create_app(config_updates=None):
     migrate = Migrate(app, db)
 
     
-
     class Vehicle(db.Model):
+        '''
+        Blueprint for a vehicle object
 
+        Attributes:
+            vin (string): a vehicle's unique identification code
+            manufacturer_name (string): the manufacturer for the vehicle
+            horse_power (int): a vehicle's engine's power
+            model_name (string): the specific name that the manufacturer markets
+            model_year (int): the year the model was designed for (interestingly not the same as year built!)
+            purchase_price (float): the amount to buy the vehicle
+            fuel_type (string): the substance used to power the vehicle
+
+        '''
         __tablename__='vehicles'
 
         vin = db.Column(db.String(), primary_key=True)
@@ -42,7 +54,7 @@ def create_app(config_updates=None):
         fuel_type = db.Column(db.String())
 
         def __init__(self, vin, manufacturer_name, horse_power, model_name, model_year, purchase_price, fuel_type):
-
+            
             self.vin = vin.upper()
             self.manufacturer_name = manufacturer_name
             self.horse_power = horse_power
@@ -52,6 +64,7 @@ def create_app(config_updates=None):
             self.fuel_type = fuel_type
         
         def serialize(self):
+            '''return a json format (dictionary) of vehicle's attributes'''
 
             return {
                 "vin": self.vin,
@@ -62,10 +75,6 @@ def create_app(config_updates=None):
                 "purchase_price": self.purchase_price,
                 "fuel_type": self.fuel_type,
             }
-        
-        def __repr__(self):
-            return f'vin: {self.vin}'
-
 
     @app.route('/')
     def hello() -> str:
@@ -75,28 +84,30 @@ def create_app(config_updates=None):
     def list_vehicles():
 
         if request.method=='GET':
+            '''returns all vehicles in a json format'''
 
             vehicles = Vehicle.query.all()
-
-            
             vehicles = [vehicle.serialize() for vehicle in vehicles]
             return jsonify(vehicles), 200
             
         elif request.method=='POST':
+            '''creates a vehicle and validates it'''
 
             vehicle_request = request.get_json()
             
+            #check if vehicle is valid
             vin, error = validate_vehicle_request(vehicle_request, Vehicle, False)
             if error:
                 return error, 422
             
+            #creates vehicle, commits to database, and returns serialization
             vehicle = Vehicle(
                 vin = vin,
                 manufacturer_name = vehicle_request.get('manufacturer_name'),
                 horse_power = vehicle_request.get('horse_power'),
                 model_name = vehicle_request.get('model_name'),
                 model_year = vehicle_request.get('model_year'),
-                purchase_price = vehicle_request.get('purchase_price'),
+                purchase_price = round(vehicle_request.get('purchase_price'), 2),
                 fuel_type = vehicle_request.get('fuel_type'),
             )
 
@@ -108,15 +119,16 @@ def create_app(config_updates=None):
     def select_vehicle(vin):
 
         if request.method=='GET':
+            '''returns a specific vehicle'''
 
             vehicle = Vehicle.query.get(vin)
 
             if vehicle is None:
                 return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
-            
             return jsonify(vehicle.serialize()),200
 
         elif request.method=='PUT':
+            '''updates a specifc vehicle'''
 
             vehicle_request = request.get_json()
 
@@ -125,8 +137,6 @@ def create_app(config_updates=None):
                 return error, 422
             
             vehicle = Vehicle.query.get(vin)
-
-            
             if not vehicle:
                 return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
                 #or simply return 200 and add new entry based on how this put should be handled (clarify~)
@@ -136,14 +146,15 @@ def create_app(config_updates=None):
             vehicle.horse_power = vehicle_request.get('horse_power')
             vehicle.model_name = vehicle_request.get('model_name')
             vehicle.model_year = vehicle_request.get('model_year')
-            vehicle.purchase_price = vehicle_request.get('purchase_price')
+            vehicle.purchase_price = round(vehicle_request.get('purchase_price'), 2)
             vehicle.fuel_type = vehicle_request.get('fuel_type')
 
             db.session.commit()
-
             return jsonify(vehicle.serialize()),200
 
         elif request.method=='DELETE':
+            '''deletes a specific vehicle'''
+
             vehicle = Vehicle.query.get(vin)
 
             if vehicle is None:
