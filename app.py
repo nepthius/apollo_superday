@@ -115,7 +115,7 @@ def create_app(config_updates=None):
             db.session.commit()
             return jsonify(vehicle.serialize()), 201
 
-    @app.route('/vehicle/<vin>', methods=['GET', 'PUT', 'DELETE'])
+    @app.route('/vehicle/<vin>', methods=['GET', 'PUT', 'DELETE', 'PATCH'])
     def select_vehicle(vin):
 
         if request.method=='GET':
@@ -165,6 +165,39 @@ def create_app(config_updates=None):
             db.session.commit()
 
             return jsonify({"message":f"deleted vehicle with vin: {vin}"}), 204
+        
+        elif request.method=='PATCH':
+            '''updates specific attributes of a vehicle'''
+    
+            vehicle = Vehicle.query.get(vin)
+            if vehicle is None:
+                return jsonify({"error":f"vehicle with vin '{vin}' not found"}), 404
+                #or simply return 204 based on how this delete should be handled (clarify~)
+
+            #loops over and adds attributes from the request to the original vehicle serialization
+            payload = vehicle.serialize()
+            vehicle_request = request.get_json()
+            potential_inputs = ["vin", "manufacturer_name", "horse_power", "model_name", "model_year", "purchase_price", "fuel_type"]
+            for input in potential_inputs:
+                if input in vehicle_request:
+                    payload[input] = vehicle_request[input]
+
+            #validates vehicle with updates
+            vin, error = validate_vehicle_request(payload, Vehicle, True)
+            if error:
+                return error, 422
+
+            #stores update if valid
+            vehicle.vin = vin
+            vehicle.manufacturer_name = payload['manufacturer_name']
+            vehicle.horse_power = payload['horse_power']
+            vehicle.model_name = payload['model_name']
+            vehicle.model_year = payload['model_year']
+            vehicle.purchase_price = round(payload['purchase_price'], 2)
+            vehicle.fuel_type = payload['fuel_type']
+
+            db.session.commit()
+            return jsonify(vehicle.serialize()),200
     
     return app, db, migrate
 
