@@ -243,3 +243,24 @@ def test_vehicle_patch(client):
     response = client.patch("/vehicle/3VWFA81H9PM123456", json=patch_payload)
     assert response.status_code == 422
     assert response.json["error"] == f"'model_year' must be a int"
+
+
+def test_vehicle_sold(client):
+    payload = {
+                "vin": "3VWFA81H9PM123456",
+                "manufacturer_name": "Volkswagen",
+                "model_name": "Jetta",
+                "model_year": 1993,
+                "fuel_type": "Gasoline",
+                "horse_power": 115,
+                "purchase_price": 2200.20
+                }
+    
+    #check if vehicle was succesfuly posted
+    response = client.post("/vehicle", json=payload)
+    assert response.status_code ==201
+    assert response.json["vin"] == "3VWFA81H9PM123456"
+
+    #post the vehicle's vin into vehicle_sold
+    #assert hey is the status code 200 and is the vehicle's vin in vehicle sold once we commit get request
+    

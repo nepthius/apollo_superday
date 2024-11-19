@@ -52,6 +52,9 @@ def create_app(config_updates=None):
         model_year = db.Column(db.Integer)
         purchase_price = db.Column(db.Float)
         fuel_type = db.Column(db.String())
+        color = db.Column(db.String())
+        category = db.Column(db.String())
+
 
         def __init__(self, vin, manufacturer_name, horse_power, model_name, model_year, purchase_price, fuel_type):
             
@@ -76,10 +79,47 @@ def create_app(config_updates=None):
                 "fuel_type": self.fuel_type,
             }
 
+    class Vehicle_sold(db.Model):
+        __tablename__ = "sold_vehicles"
+
+        vin = db.Column(db.String())
+        purchase_price = db.Column(db.Float())
+        insurance_policy = db.Column(db.String())
+        car_damage = db.Column(db.Float())
+
+        def __init__(self, vin, purchase_price, insurance_policy, car_damage):
+            self.vin = vin.upper()
+            self.purchase_price = purchase_price
+            self.insurance_policy = insurance_policy
+            self.car_damage = car_damage
+
+        def serialize(self):
+            return{
+                "vin": self.vin,
+                "purchase_price": self.purchase_price,
+                "insurance_policy": self.insurance_policy,
+                "car_damge": self.car_damage
+            }
+
+
     @app.route('/')
     def hello() -> str:
         return 'Welcome to the vehicle rest-api!'
 
+    @app.route('/vehicle_sold', methods=['GET'])
+    def list_sold_vehicles():
+        if request.method=='GET':
+            vehicles = Vehicle_sold.query.all()
+            vins = [vehicle['vin'] for vehicle in vehicles]
+            
+            vehicles_sold = []
+            for vin in vins:
+                vehicle = Vehicle.query.get(vin)
+                vehicles_sold.append(vehicle)
+            
+            vehicles_sold = [vehicle_sold.serialize() for vehicle_sold in vehicles_sold]
+
+            return jsonify(vehicles_sold), 200
     @app.route('/vehicle', methods=['GET', 'POST'])
     def list_vehicles():
 
@@ -109,6 +149,8 @@ def create_app(config_updates=None):
                 model_year = vehicle_request.get('model_year'),
                 purchase_price = round(vehicle_request.get('purchase_price'), 2),
                 fuel_type = vehicle_request.get('fuel_type'),
+                color = vehicle_request.get('color'),
+                category = vehicle_request.get('category')
             )
 
             db.session.add(vehicle)
@@ -148,6 +190,8 @@ def create_app(config_updates=None):
             vehicle.model_year = vehicle_request.get('model_year')
             vehicle.purchase_price = round(vehicle_request.get('purchase_price'), 2)
             vehicle.fuel_type = vehicle_request.get('fuel_type')
+            vehicle.color = vehicle_request.get('color')
+            vehicle.category = vehicle_request.get('category')
 
             db.session.commit()
             return jsonify(vehicle.serialize()),200
@@ -177,7 +221,7 @@ def create_app(config_updates=None):
             #loops over and adds attributes from the request to the original vehicle serialization
             payload = vehicle.serialize()
             vehicle_request = request.get_json()
-            potential_inputs = ["vin", "manufacturer_name", "horse_power", "model_name", "model_year", "purchase_price", "fuel_type"]
+            potential_inputs = ["vin", "manufacturer_name", "horse_power", "model_name", "model_year", "purchase_price", "fuel_type", "color", "category"]
             for input in potential_inputs:
                 if input in vehicle_request:
                     payload[input] = vehicle_request[input]
@@ -195,10 +239,12 @@ def create_app(config_updates=None):
             vehicle.model_year = payload['model_year']
             vehicle.purchase_price = round(payload['purchase_price'], 2)
             vehicle.fuel_type = payload['fuel_type']
+            vehicle.color = payload['color']
+            vehicle.category = payload['category']
 
             db.session.commit()
             return jsonify(vehicle.serialize()),200
-    
+
     return app, db, migrate
 
 app, db, migrate = create_app()
