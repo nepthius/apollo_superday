@@ -78,7 +78,7 @@ def create_app(config_updates=None):
 
     @app.route('/')
     def hello() -> str:
-        return 'Start of vehicle creation - round 3!'
+        return 'Welcome to the vehicle rest-api!'
 
     @app.route('/vehicle', methods=['GET', 'POST'])
     def list_vehicles():
